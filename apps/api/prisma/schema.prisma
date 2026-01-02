@@ -1,0 +1,362 @@
+// This is your Prisma schema file
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Core Models
+
+model Institution {
+  id                  String              @id @default(uuid())
+  name                String
+  type                InstitutionType
+  code                String              @unique
+  address             String?
+  city                String?
+  province            String?
+  postalCode          String?
+  country             String              @default("Canada")
+  website             String?
+  contactEmail        String?
+  contactPhone        String?
+  isActive            Boolean             @default(true)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  // Relations
+  microCredentials    MicroCredential[]
+  recognitions        Recognition[]
+  pathwaysAsSource    Pathway[]           @relation("SourceInstitution")
+  pathwaysAsTarget    Pathway[]           @relation("TargetInstitution")
+
+  @@index([code])
+  @@index([type])
+  @@map("institutions")
+}
+
+model MicroCredential {
+  id                  String              @id @default(uuid())
+  title               String
+  shortTitle          String?
+  description         String
+  programCode         String              @unique
+  institutionId       String
+  credentialType      CredentialType
+  deliveryMode        DeliveryMode
+  duration            Int                 // in hours
+  credits             Float?
+  assessmentMethod    String?
+  cost                Float?
+  language            String              @default("English")
+  level               EducationLevel
+  campus              String?
+  department          String?
+  faculty             String?
+  status              CredentialStatus    @default(DRAFT)
+  isActive            Boolean             @default(true)
+  
+  // Meta information
+  effectiveDate       DateTime?
+  expiryDate          DateTime?
+  lastReviewDate      DateTime?
+  nextReviewDate      DateTime?
+  
+  // URLs and resources
+  programUrl          String?
+  applicationUrl      String?
+  additionalInfo      String?
+  
+  // Timestamps
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  publishedAt         DateTime?
+
+  // Relations
+  institution         Institution         @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  learningOutcomes    LearningOutcome[]
+  recognitions        Recognition[]
+  pathways            Pathway[]
+  prerequisites       Prerequisite[]
+  
+  @@index([institutionId])
+  @@index([programCode])
+  @@index([status])
+  @@index([credentialType])
+  @@map("micro_credentials")
+}
+
+model LearningOutcome {
+  id                    String            @id @default(uuid())
+  microCredentialId     String
+  outcomeText           String
+  bloomLevel            BloomLevel
+  category              OutcomeCategory
+  orderIndex            Int
+  isCore                Boolean           @default(true)
+  
+  // AI-generated metadata
+  embeddings            Float[]           // Vector embeddings for semantic search (TODO: Consider pgvector for production)
+  keywords              String[]          // Extracted keywords
+  
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  // Relations
+  microCredential       MicroCredential   @relation(fields: [microCredentialId], references: [id], onDelete: Cascade)
+  
+  @@index([microCredentialId])
+  @@map("learning_outcomes")
+}
+
+model Recognition {
+  id                    String              @id @default(uuid())
+  microCredentialId     String
+  recognizingInstitutionId String
+  recognitionType       RecognitionType
+  creditValue           Float?
+  creditType            CreditType?
+  transcriptMethod      TranscriptMethod
+  conditions            String?
+  effectiveDate         DateTime
+  expiryDate            DateTime?
+  isActive              Boolean             @default(true)
+  approvalReference     String?
+  notes                 String?
+  
+  // Digital credentials
+  badgeUrl              String?
+  certificateTemplateId String?
+  
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  // Relations
+  microCredential       MicroCredential     @relation(fields: [microCredentialId], references: [id], onDelete: Cascade)
+  recognizingInstitution Institution        @relation(fields: [recognizingInstitutionId], references: [id])
+  
+  @@index([microCredentialId])
+  @@index([recognizingInstitutionId])
+  @@index([recognitionType])
+  @@map("recognitions")
+}
+
+model Pathway {
+  id                    String              @id @default(uuid())
+  name                  String
+  description           String?
+  sourceInstitutionId   String
+  targetInstitutionId   String
+  microCredentialId     String
+  pathwayType           PathwayType
+  
+  // Transfer details
+  transferCredits       Float?
+  equivalencyNotes      String?
+  additionalRequirements String?
+  
+  // AI suggestions
+  confidenceScore       Float?              // 0-1 confidence from AI model
+  isAiSuggested         Boolean             @default(false)
+  aiReasoning           String?
+  
+  // Status
+  status                PathwayStatus       @default(DRAFT)
+  isActive              Boolean             @default(true)
+  approvedBy            String?
+  approvedAt            DateTime?
+  
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  // Relations
+  sourceInstitution     Institution         @relation("SourceInstitution", fields: [sourceInstitutionId], references: [id])
+  targetInstitution     Institution         @relation("TargetInstitution", fields: [targetInstitutionId], references: [id])
+  microCredential       MicroCredential     @relation(fields: [microCredentialId], references: [id], onDelete: Cascade)
+  
+  @@index([sourceInstitutionId])
+  @@index([targetInstitutionId])
+  @@index([microCredentialId])
+  @@index([pathwayType])
+  @@map("pathways")
+}
+
+model Prerequisite {
+  id                    String              @id @default(uuid())
+  microCredentialId     String
+  description           String
+  type                  PrerequisiteType
+  isMandatory           Boolean             @default(true)
+  orderIndex            Int
+  
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  // Relations
+  microCredential       MicroCredential     @relation(fields: [microCredentialId], references: [id], onDelete: Cascade)
+  
+  @@index([microCredentialId])
+  @@map("prerequisites")
+}
+
+// Supporting Models
+
+model User {
+  id                    String              @id @default(uuid())
+  email                 String              @unique
+  passwordHash          String
+  firstName             String
+  lastName              String
+  role                  UserRole            @default(USER)
+  institutionId         String?
+  isActive              Boolean             @default(true)
+  lastLoginAt           DateTime?
+  
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@index([email])
+  @@index([institutionId])
+  @@map("users")
+}
+
+model AuditLog {
+  id                    String              @id @default(uuid())
+  entityType            String
+  entityId              String
+  action                AuditAction
+  userId                String?
+  changes               Json
+  ipAddress             String?
+  userAgent             String?
+  
+  createdAt             DateTime            @default(now())
+
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// Enums
+
+enum InstitutionType {
+  UNIVERSITY
+  COLLEGE
+  INSTITUTE
+  POLYTECHNIC
+  EXTERNAL
+}
+
+enum CredentialType {
+  MICRO_CREDENTIAL
+  CERTIFICATE
+  DIPLOMA
+  BADGE
+  SPECIALIZATION
+}
+
+enum DeliveryMode {
+  IN_PERSON
+  ONLINE
+  HYBRID
+  SELF_PACED
+}
+
+enum EducationLevel {
+  INTRODUCTORY
+  INTERMEDIATE
+  ADVANCED
+  GRADUATE
+}
+
+enum CredentialStatus {
+  DRAFT
+  UNDER_REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+enum BloomLevel {
+  REMEMBER
+  UNDERSTAND
+  APPLY
+  ANALYZE
+  EVALUATE
+  CREATE
+}
+
+enum OutcomeCategory {
+  KNOWLEDGE
+  SKILLS
+  COMPETENCIES
+  ATTITUDES
+}
+
+enum RecognitionType {
+  FULL_CREDIT
+  PARTIAL_CREDIT
+  EQUIVALENCY
+  EXEMPTION
+  ADVANCED_STANDING
+}
+
+enum CreditType {
+  ELECTIVE
+  PROGRAM_REQUIRED
+  GENERAL_EDUCATION
+  MAJOR_REQUIRED
+}
+
+enum TranscriptMethod {
+  LISTED_ON_TRANSCRIPT
+  SEPARATE_DOCUMENT
+  DIGITAL_BADGE
+  NOT_RECORDED
+}
+
+enum PathwayType {
+  INTERNAL
+  EXTERNAL
+  ARTICULATION
+  LADDERING
+}
+
+enum PathwayStatus {
+  DRAFT
+  UNDER_REVIEW
+  APPROVED
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+enum PrerequisiteType {
+  ACADEMIC
+  WORK_EXPERIENCE
+  CERTIFICATION
+  COURSE_COMPLETION
+  OTHER
+}
+
+enum UserRole {
+  ADMIN
+  INSTITUTION_ADMIN
+  PROGRAM_COORDINATOR
+  USER
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  PUBLISH
+  ARCHIVE
+  APPROVE
+  REJECT
+}
