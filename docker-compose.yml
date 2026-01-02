@@ -1,0 +1,95 @@
+# Docker Compose for BCCB Micro-Credentials Platform
+# Services: PostgreSQL, Redis, API, Web, AI Service
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: bccb-postgres
+    environment:
+      POSTGRES_DB: microcredentials
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: bccb-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.api
+    container_name: bccb-api
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://user:password@postgres:5432/microcredentials
+      REDIS_URL: redis://redis:6379
+      AI_SERVICE_URL: http://ai-service:8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./apps/api:/app
+      - /app/node_modules
+    command: npm run dev
+
+  web:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.web
+    container_name: bccb-web
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: http://localhost:3000
+    depends_on:
+      - api
+    volumes:
+      - ./apps/web:/app
+      - /app/node_modules
+    command: npm run dev
+
+  ai-service:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.ai
+    container_name: bccb-ai-service
+    ports:
+      - "8000:8000"
+    environment:
+      PYTHON_ENV: development
+      DATABASE_URL: postgresql://user:password@postgres:5432/microcredentials
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./packages/ai-engine:/app
+      - ai_models:/app/models
+
+volumes:
+  postgres_data:
+  ai_models:
+
+networks:
+  default:
+    name: bccb-network
