@@ -1,0 +1,79 @@
+# Multi-stage build for Node.js API
+FROM node:20-alpine AS base
+
+# Install dependencies only when needed
+FROM base AS deps
+WORKDIR /app
+
+# Install build dependencies
+RUN apk add --no-cache libc6-compat
+
+# Copy package files
+COPY package.json package-lock.json* ./
+COPY apps/api/package.json ./apps/api/
+COPY packages/shared/package.json ./packages/shared/
+COPY database/schema/schema.prisma ./database/schema/
+
+# Install dependencies
+RUN npm ci
+
+# Generate Prisma Client
+RUN npx prisma generate --schema=./database/schema/schema.prisma
+
+# Build the application
+FROM base AS builder
+WORKDIR /app
+
+# Copy dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
+
+# Copy source code
+COPY . .
+COPY apps/api ./apps/api
+COPY packages/shared ./packages/shared
+COPY database ./database
+
+# Set environment
+ENV NODE_ENV=production
+
+# Build TypeScript
+RUN npm run build --workspace=apps/api
+
+# Production image
+FROM base AS runner
+WORKDIR /app
+
+# Install dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init curl
+
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nodejs
+
+# Copy necessary files
+COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nodejs:nodejs /app/apps/api/dist ./apps/api/dist
+COPY --from=builder --chown=nodejs:nodejs /app/apps/api/package.json ./apps/api/
+COPY --from=builder --chown=nodejs:nodejs /app/packages/shared ./packages/shared
+COPY --from=builder --chown=nodejs:nodejs /app/database ./database
+COPY --from=builder --chown=nodejs:nodejs /app/package.json ./
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# Switch to non-root user
+USER nodejs
+
+# Expose port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:3000/health || exit 1
+
+# Start the application with dumb-init
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "apps/api/dist/index.js"]
