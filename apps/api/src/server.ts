@@ -59,7 +59,7 @@ app.use((req, _res, next) => {
 // Health check endpoint
 app.get('/health', async (_req, res) => {
   try {
-    // Check database connection
+    // Check database connection - use safe parameterized query
     await prisma.$queryRaw`SELECT 1`;
     
     res.json({

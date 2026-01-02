@@ -64,8 +64,8 @@ export const updateRecognitionSchema = createRecognitionSchema.partial();
 
 // Query parameter schemas
 export const paginationSchema = z.object({
-  page: z.string().regex(/^\d+$/).transform(Number).default('1'),
-  limit: z.string().regex(/^\d+$/).transform(Number).default('10'),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(10),
   sortBy: z.string().optional(),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });

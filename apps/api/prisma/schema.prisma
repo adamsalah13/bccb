@@ -101,7 +101,8 @@ model LearningOutcome {
   isCore                Boolean           @default(true)
   
   // AI-generated metadata
-  embeddings            Float[]           // Vector embeddings for semantic search (TODO: Consider pgvector for production)
+  // NOTE: For production use, consider migrating to pgvector extension for efficient vector operations
+  embeddings            Float[]           // Vector embeddings for semantic search
   keywords              String[]          // Extracted keywords
   
   createdAt             DateTime          @default(now())

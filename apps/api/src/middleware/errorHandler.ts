@@ -1,4 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
+import { ZodError } from 'zod';
+import { Prisma } from '@prisma/client';
 import { logger } from '../utils/logger';
 
 export class AppError extends Error {
@@ -36,7 +38,7 @@ export const errorHandler = (
   }
 
   // Handle Prisma errors
-  if (err.name === 'PrismaClientKnownRequestError') {
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
     logger.error({
       message: 'Database error',
       error: err.message,
@@ -51,7 +53,7 @@ export const errorHandler = (
   }
 
   // Handle validation errors
-  if (err.name === 'ZodError') {
+  if (err instanceof ZodError) {
     logger.error({
       message: 'Validation error',
       error: err.message,
