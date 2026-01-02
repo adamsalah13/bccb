@@ -89,7 +89,7 @@ graph TD
     `
   }
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: 'available' | 'in-progress' | 'completed') => {
     const styles = {
       available: 'bg-green-100 text-green-800',
       'in-progress': 'bg-yellow-100 text-yellow-800',
@@ -101,8 +101,8 @@ graph TD
       completed: 'Completed',
     }
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${styles[status as keyof typeof styles]}`}>
-        {labels[status as keyof typeof labels]}
+      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${styles[status]}`}>
+        {labels[status]}
       </span>
     )
   }

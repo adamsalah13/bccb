@@ -10,7 +10,7 @@ interface MermaidDiagramProps {
 mermaid.initialize({
   startOnLoad: true,
   theme: 'default',
-  securityLevel: 'loose',
+  securityLevel: 'strict',
   fontFamily: 'Inter, system-ui, Avenir, Helvetica, Arial, sans-serif',
 })
 
@@ -31,7 +31,7 @@ export default function MermaidDiagram({ chart, className = '' }: MermaidDiagram
         elementRef.current.innerHTML = ''
 
         // Generate unique ID for the diagram
-        const id = `mermaid-${Math.random().toString(36).substr(2, 9)}`
+        const id = `mermaid-${Math.random().toString(36).substring(2, 11)}`
 
         // Render the mermaid diagram
         const { svg } = await mermaid.render(id, chart)
