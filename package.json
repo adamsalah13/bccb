@@ -24,7 +24,7 @@
     "db:migrate:deploy": "prisma migrate deploy --schema=database/schema/schema.prisma",
     "db:generate": "prisma generate --schema=database/schema/schema.prisma",
     "db:seed": "tsx database/seeds/seed.ts",
-    "db:reset": "prisma migrate reset --schema=database/schema/schema.prisma --skip-seed && npm run db:seed",
+    "db:reset": "prisma migrate reset --force --schema=database/schema/schema.prisma --skip-seed && npm run db:seed",
     "db:studio": "prisma studio --schema=database/schema/schema.prisma",
     "ai:train:pathways": "python packages/ai-engine/src/models/pathway-recommender/training.py",
     "ai:train:credits": "python packages/ai-engine/src/models/credit-assessor/training.py",
