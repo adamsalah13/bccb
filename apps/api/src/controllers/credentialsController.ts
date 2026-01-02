@@ -7,7 +7,7 @@ import {
   credentialFilterSchema,
 } from '../utils/validation';
 import { PaginatedResponse } from '../types';
-import { MicroCredential, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 export const getAllCredentials = async (
   req: Request,
