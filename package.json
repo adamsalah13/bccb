@@ -19,11 +19,13 @@
     "lint": "eslint . --ext .ts,.tsx",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
     "typecheck": "tsc --noEmit",
-    "db:migrate": "prisma migrate dev",
-    "db:migrate:create": "prisma migrate dev --create-only",
-    "db:seed": "tsx database/seeds/run-seeds.ts",
-    "db:reset": "prisma migrate reset",
-    "db:studio": "prisma studio",
+    "db:migrate": "prisma migrate dev --schema=database/schema/schema.prisma",
+    "db:migrate:create": "prisma migrate dev --create-only --schema=database/schema/schema.prisma",
+    "db:migrate:deploy": "prisma migrate deploy --schema=database/schema/schema.prisma",
+    "db:generate": "prisma generate --schema=database/schema/schema.prisma",
+    "db:seed": "tsx database/seeds/seed.ts",
+    "db:reset": "prisma migrate reset --schema=database/schema/schema.prisma --skip-seed && npm run db:seed",
+    "db:studio": "prisma studio --schema=database/schema/schema.prisma",
     "ai:train:pathways": "python packages/ai-engine/src/models/pathway-recommender/training.py",
     "ai:train:credits": "python packages/ai-engine/src/models/credit-assessor/training.py",
     "ai:evaluate": "python packages/ai-engine/src/pipelines/evaluation.py"
@@ -38,6 +40,10 @@
     "prisma": "^5.7.0",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.7.0",
+    "bcryptjs": "^2.4.3"
   },
   "engines": {
     "node": ">=20.0.0",
