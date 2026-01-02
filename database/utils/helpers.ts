@@ -74,9 +74,12 @@ export function createPaginatedResult<T>(
  * Get paginated results with count
  */
 export async function findManyWithCount<T>(
-  model: any,
-  where: any = {},
-  options: PaginationOptions & { orderBy?: any } = {}
+  model: {
+    findMany: (args: any) => Promise<T[]>;
+    count: (args: any) => Promise<number>;
+  },
+  where: Record<string, any> = {},
+  options: PaginationOptions & { orderBy?: Record<string, any> } = {}
 ): Promise<PaginatedResult<T>> {
   const { skip, take, page, pageSize } = createPagination(options);
 
@@ -97,10 +100,13 @@ export async function findManyWithCount<T>(
  * Upsert helper with better error handling
  */
 export async function safeUpsert<T>(
-  model: any,
-  where: any,
-  create: any,
-  update: any = create
+  model: {
+    upsert: (args: any) => Promise<T>;
+    findUnique: (args: any) => Promise<T | null>;
+  },
+  where: Record<string, any>,
+  create: Record<string, any>,
+  update: Record<string, any> = create
 ): Promise<T> {
   try {
     return await model.upsert({
@@ -125,8 +131,10 @@ export async function safeUpsert<T>(
  * Batch create with transaction
  */
 export async function batchCreate<T>(
-  model: any,
-  data: any[],
+  model: {
+    createMany: (args: any) => Promise<{ count: number }>;
+  },
+  data: Record<string, any>[],
   options: { skipDuplicates?: boolean } = {}
 ): Promise<{ count: number }> {
   return await model.createMany({
@@ -138,7 +146,10 @@ export async function batchCreate<T>(
 /**
  * Search helper for full-text search
  */
-export function createSearchQuery(searchTerm: string, fields: string[]): any {
+export function createSearchQuery(
+  searchTerm: string,
+  fields: string[]
+): Record<string, any> {
   if (!searchTerm) return {};
 
   return {
@@ -158,8 +169,8 @@ export function createDateRangeQuery(
   field: string,
   from?: Date | string,
   to?: Date | string
-): any {
-  const query: any = {};
+): Record<string, any> {
+  const query: Record<string, any> = {};
 
   if (from) {
     query[field] = { gte: new Date(from) };
@@ -189,8 +200,10 @@ export async function executeInTransaction<T>(
  * Soft delete helper (sets isActive to false)
  */
 export async function softDelete(
-  model: any,
-  where: any
+  model: {
+    update: (args: any) => Promise<any>;
+  },
+  where: Record<string, any>
 ): Promise<void> {
   await model.update({
     where,
@@ -202,8 +215,10 @@ export async function softDelete(
  * Bulk soft delete
  */
 export async function bulkSoftDelete(
-  model: any,
-  where: any
+  model: {
+    updateMany: (args: any) => Promise<{ count: number }>;
+  },
+  where: Record<string, any>
 ): Promise<{ count: number }> {
   return await model.updateMany({
     where,
@@ -215,9 +230,11 @@ export async function bulkSoftDelete(
  * Get record by ID with error handling
  */
 export async function findByIdOrThrow<T>(
-  model: any,
+  model: {
+    findUnique: (args: any) => Promise<T | null>;
+  },
   id: string,
-  include?: any
+  include?: Record<string, any>
 ): Promise<T> {
   const record = await model.findUnique({
     where: { id },
@@ -234,7 +251,12 @@ export async function findByIdOrThrow<T>(
 /**
  * Check if record exists
  */
-export async function exists(model: any, where: any): Promise<boolean> {
+export async function exists(
+  model: {
+    count: (args: any) => Promise<number>;
+  },
+  where: Record<string, any>
+): Promise<boolean> {
   const count = await model.count({ where });
   return count > 0;
 }

@@ -185,10 +185,15 @@ export async function seedRecognitions() {
       continue;
     }
 
+    // Note: Using composite ID as workaround since schema doesn't define a unique constraint
+    // for the (microCredentialId, recognizingInstitutionId) combination.
+    // In production, consider adding @@unique([microCredentialId, recognizingInstitutionId])
+    // to the Recognition model in schema.prisma for better data integrity.
+    const compositeId = `${microCredentialId}-${recognizingInstitutionId}`;
+
     await prisma.recognition.upsert({
       where: {
-        // Using a composite of fields as unique identifier since we don't have a unique constraint
-        id: `${microCredentialId}-${recognizingInstitutionId}`,
+        id: compositeId,
       },
       update: {
         ...recognitionFields,
@@ -196,7 +201,7 @@ export async function seedRecognitions() {
         recognizingInstitutionId,
       },
       create: {
-        id: `${microCredentialId}-${recognizingInstitutionId}`,
+        id: compositeId,
         ...recognitionFields,
         microCredentialId,
         recognizingInstitutionId,

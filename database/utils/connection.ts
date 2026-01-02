@@ -102,6 +102,14 @@ export async function resetDatabase(): Promise<void> {
     throw new Error('Cannot reset database in production environment');
   }
 
+  // Additional safeguard: require explicit confirmation
+  if (!process.env.ALLOW_DB_RESET) {
+    throw new Error(
+      'Database reset requires ALLOW_DB_RESET environment variable to be set. ' +
+      'This is a safety measure to prevent accidental data loss.'
+    );
+  }
+
   console.log('⚠️  Resetting database...');
 
   try {
