@@ -1,0 +1,68 @@
+# Multi-stage build for Python AI service
+FROM python:3.11-slim AS base
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Install system dependencies
+FROM base AS deps
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements files
+COPY packages/ai-engine/requirements.txt ./
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Production image
+FROM base AS runner
+WORKDIR /app
+
+# Install runtime dependencies only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN useradd --create-home --shell /bin/bash --uid 1001 appuser
+
+# Copy Python packages from deps stage
+COPY --from=deps /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=deps /usr/local/bin /usr/local/bin
+
+# Copy application code
+COPY --chown=appuser:appuser packages/ai-engine ./packages/ai-engine
+
+# Create directories for models and logs
+RUN mkdir -p /app/ml-models/trained /app/logs && \
+    chown -R appuser:appuser /app/ml-models /app/logs
+
+# Switch to non-root user
+USER appuser
+
+# Set working directory to AI engine
+WORKDIR /app/packages/ai-engine
+
+# Set environment variables
+ENV PYTHONPATH=/app/packages/ai-engine/src
+ENV MODEL_PATH=/app/ml-models/trained
+ENV LOG_LEVEL=info
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=15s --retries=3 \
+  CMD curl -f http://localhost:8000/health || exit 1
+
+# Start the FastAPI application with Uvicorn
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
