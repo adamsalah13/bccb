@@ -122,6 +122,8 @@ class VectorStore:
             return []
         
         # Calculate cosine similarities
+        # Ensure query_vector is 1D
+        query_vector = query_vector.flatten()
         query_norm = query_vector / np.linalg.norm(query_vector)
         vector_norms = self.vectors / np.linalg.norm(self.vectors, axis=1, keepdims=True)
         similarities = np.dot(vector_norms, query_norm)

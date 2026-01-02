@@ -117,6 +117,10 @@ class EmbeddingService:
         Returns:
             float: Similarity score between -1 and 1
         """
+        # Ensure vectors are 1D
+        embedding1 = embedding1.flatten()
+        embedding2 = embedding2.flatten()
+        
         # Normalize vectors
         norm1 = np.linalg.norm(embedding1)
         norm2 = np.linalg.norm(embedding2)
@@ -144,6 +148,9 @@ class EmbeddingService:
         Returns:
             np.ndarray: Array of similarity scores
         """
+        # Ensure query is 1D
+        query_embedding = query_embedding.flatten()
+        
         # Normalize query
         query_norm = query_embedding / np.linalg.norm(query_embedding)
         
