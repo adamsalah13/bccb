@@ -74,6 +74,7 @@ database/
 ### Database Management
 
 - `npm run db:studio` - Open Prisma Studio (GUI for database)
+- `npx tsx database/verify.ts` - Run database verification script
 
 ## Database Schema
 
