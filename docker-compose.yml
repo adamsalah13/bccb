@@ -71,20 +71,23 @@ services:
 
   ai-service:
     build:
-      context: .
-      dockerfile: infrastructure/docker/Dockerfile.ai
+      context: ./apps/ai-service
+      dockerfile: Dockerfile
     container_name: bccb-ai-service
     ports:
       - "8000:8000"
     environment:
       PYTHON_ENV: development
       DATABASE_URL: postgresql://user:password@postgres:5432/microcredentials
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+      LOG_LEVEL: info
     depends_on:
       postgres:
         condition: service_healthy
     volumes:
-      - ./packages/ai-engine:/app
-      - ai_models:/app/models
+      - ./apps/ai-service:/app
+      - ai_models:/app/ml-models/trained
 
 volumes:
   postgres_data:
