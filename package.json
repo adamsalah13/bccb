@@ -1,0 +1,46 @@
+{
+  "name": "bccb-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI-Native Micro-Credentials Platform - BC Council on Admissions and Transfer",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=apps/api\" \"npm run dev --workspace=apps/web\"",
+    "dev:api": "npm run dev --workspace=apps/api",
+    "dev:web": "npm run dev --workspace=apps/web",
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces",
+    "test:unit": "npm run test:unit --workspaces",
+    "test:integration": "npm run test:integration --workspaces",
+    "test:e2e": "npm run test:e2e --workspaces",
+    "lint": "eslint . --ext .ts,.tsx",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
+    "typecheck": "tsc --noEmit",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:create": "prisma migrate dev --create-only",
+    "db:seed": "tsx database/seeds/run-seeds.ts",
+    "db:reset": "prisma migrate reset",
+    "db:studio": "prisma studio",
+    "ai:train:pathways": "python packages/ai-engine/src/models/pathway-recommender/training.py",
+    "ai:train:credits": "python packages/ai-engine/src/models/credit-assessor/training.py",
+    "ai:evaluate": "python packages/ai-engine/src/pipelines/evaluation.py"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "concurrently": "^8.2.0",
+    "eslint": "^8.55.0",
+    "prettier": "^3.1.0",
+    "prisma": "^5.7.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  }
+}
