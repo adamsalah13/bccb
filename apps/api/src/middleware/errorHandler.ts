@@ -1,0 +1,91 @@
+import { Request, Response, NextFunction } from 'express';
+import { ZodError } from 'zod';
+import { Prisma } from '@prisma/client';
+import { logger } from '../utils/logger';
+
+export class AppError extends Error {
+  statusCode: number;
+  isOperational: boolean;
+
+  constructor(message: string, statusCode: number) {
+    super(message);
+    this.statusCode = statusCode;
+    this.isOperational = true;
+
+    Error.captureStackTrace(this, this.constructor);
+  }
+}
+
+export const errorHandler = (
+  err: Error | AppError,
+  req: Request,
+  res: Response,
+  _next: NextFunction
+) => {
+  if (err instanceof AppError) {
+    logger.error({
+      message: err.message,
+      statusCode: err.statusCode,
+      path: req.path,
+      method: req.method,
+      stack: err.stack,
+    });
+
+    return res.status(err.statusCode).json({
+      status: 'error',
+      message: err.message,
+    });
+  }
+
+  // Handle Prisma errors
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    logger.error({
+      message: 'Database error',
+      error: err.message,
+      path: req.path,
+      method: req.method,
+    });
+
+    return res.status(400).json({
+      status: 'error',
+      message: 'Database operation failed',
+    });
+  }
+
+  // Handle validation errors
+  if (err instanceof ZodError) {
+    logger.error({
+      message: 'Validation error',
+      error: err.message,
+      path: req.path,
+      method: req.method,
+    });
+
+    return res.status(400).json({
+      status: 'error',
+      message: 'Validation failed',
+      errors: err,
+    });
+  }
+
+  // Unknown errors
+  logger.error({
+    message: 'Internal server error',
+    error: err.message,
+    stack: err.stack,
+    path: req.path,
+    method: req.method,
+  });
+
+  return res.status(500).json({
+    status: 'error',
+    message: 'Internal server error',
+  });
+};
+
+export const notFoundHandler = (req: Request, res: Response) => {
+  res.status(404).json({
+    status: 'error',
+    message: `Route ${req.originalUrl} not found`,
+  });
+};
